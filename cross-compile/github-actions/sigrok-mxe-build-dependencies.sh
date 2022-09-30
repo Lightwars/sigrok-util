@@ -95,8 +95,8 @@ cd ..
 # libsigrok
 $GIT_CLONE $SIGROK_REPO_BASE/libsigrok
 cd libsigrok
-patch -p1 < sigrok-util/cross-compile/github-actions/peaktech-p607x.patch
-patch -p1 < sigrok-util/cross-compile/github-actions/uni-t_ut171b.patch
+patch -p1 < $(dirname $0)/peaktech-p607x.patch
+patch -p1 < $(dirname $0)/uni-t_ut171b.patch
 ./autogen.sh
 ./configure $C $L
 make $PARALLEL $V
