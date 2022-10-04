@@ -143,7 +143,9 @@ mv $INSTALL_DIR/share/sigrok-firmware-fx2lafw-bin-0.1.7 $INSTALL_DIR/share/sigro
 # sigrok-dumps
 $GIT_CLONE $SIGROK_REPO_BASE/sigrok-dumps
 cd sigrok-dumps
-make PREFIX=$INSTALL_DIR/share/sigrok-dumps install $V
+mkdir -p $INSTALL_DIR/share/sigrok-dumps
+cp -r * $INSTALL_DIR/share/sigrok-dumps
+#make PREFIX=$INSTALL_DIR/share/sigrok-dumps install $V
 cd ..
 
 # sigrok-cli
