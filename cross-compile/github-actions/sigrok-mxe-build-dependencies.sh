@@ -138,3 +138,18 @@ $GIT_CLONE $SIGROK_REPO_BASE/sigrok-dumps
 cd sigrok-dumps
 make install DESTDIR=$INSTALL_DIR/share/sigrok-dumps $V
 cd ..
+
+# sigrok-cli
+$GIT_CLONE $SIGROK_REPO_BASE/sigrok-cli
+cd sigrok-cli
+./autogen.sh
+./configure $C
+make $PARALLEL $V
+make install $V
+if [ $TARGET = "i686" ]; then
+	makensis contrib/sigrok-cli_cross.nsi
+else
+	makensis -DPE64=1 contrib/sigrok-cli_cross.nsi
+fi
+cp contrib/*.exe $INSTALL_DIR/
+cd ..
