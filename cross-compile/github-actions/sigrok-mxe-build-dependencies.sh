@@ -104,3 +104,37 @@ patch -p1 < $ACTUAL_PATH/uni-t_ut171b.patch
 make $PARALLEL $V
 make install $V
 cd ..
+
+# libsigrokdecode
+$GIT_CLONE $SIGROK_REPO_BASE/libsigrokdecode
+cd libsigrokdecode
+./autogen.sh
+./configure $C $L
+make $PARALLEL $V
+make install $V
+cd ..
+
+# sigrok-firmware
+$GIT_CLONE $SIGROK_REPO_BASE/sigrok-firmware
+cd sigrok-firmware
+./autogen.sh
+# Nothing gets cross-compiled here, we just need 'make install' basically.
+./configure --prefix=$INSTALL_DIR
+make install $V
+cd ..
+
+# sigrok-firmware-fx2lafw
+$GIT_CLONE $SIGROK_REPO_BASE/sigrok-firmware-fx2lafw
+cd sigrok-firmware-fx2lafw
+./autogen.sh
+# We're building the fx2lafw firmware on the host, no need to cross-compile.
+./configure --prefix=$INSTALL_DIR
+make $PARALLEL $V
+make install $V
+cd ..
+
+# sigrok-dumps
+$GIT_CLONE $SIGROK_REPO_BASE/sigrok-dumps
+cd sigrok-dumps
+make install DESTDIR=$INSTALL_DIR/share/sigrok-dumps $V
+cd ..
