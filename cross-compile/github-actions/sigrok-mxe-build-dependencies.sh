@@ -21,6 +21,8 @@
 
 set -e
 
+ACTUAL_PATH=$PWD
+
 mkdir -p $INSTALL_DIR
 
 BUILD_DIR=./build
@@ -95,8 +97,8 @@ cd ..
 # libsigrok
 $GIT_CLONE $SIGROK_REPO_BASE/libsigrok
 cd libsigrok
-patch -p1 < $(dirname $0)/peaktech-p607x.patch
-patch -p1 < $(dirname $0)/uni-t_ut171b.patch
+patch -p1 < $ACTUAL_PATH/peaktech-p607x.patch
+patch -p1 < $ACTUAL_PATH/uni-t_ut171b.patch
 ./autogen.sh
 ./configure $C $L
 make $PARALLEL $V
