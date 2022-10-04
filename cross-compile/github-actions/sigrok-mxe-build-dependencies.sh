@@ -85,6 +85,10 @@ fi
 # otherwise importing certain modules (e.g. ctypes) won't work (bug #1409).
 unzip -q $INSTALL_DIR/python34.zip *.pyd -d $INSTALL_DIR
 
+# Zadig (we ship this with frontends for easy driver switching).
+$WGET https://github.com/pbatard/libwdi/releases/download/b721/zadig-2.4.exe -O $INSTALL_DIR/zadig.exe
+$WGET https://github.com/pbatard/libwdi/releases/download/v1.2.5/zadig_xp-2.2.exe -O $INSTALL_DIR/zadig_xp.exe
+
 # libserialport
 $GIT_CLONE $SIGROK_REPO_BASE/libserialport
 cd libserialport
