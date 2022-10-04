@@ -33,7 +33,7 @@ new file mode 100644
 index 0000000..b014116
 --- /dev/null
 +++ b/src/hardware/peaktech-607x/api.c
-@@ -0,0 +1,1434 @@
+@@ -0,0 +1,1419 @@
 +// SPDX-License-Identifier: GPL-3.0-or-later
 +/*
 + * This file is part of the libsigrok project.
@@ -575,13 +575,7 @@ index 0000000..b014116
 +		}
 +	} else {
 +		/* handle channel group configuration options */
-+		struct sr_channel const			*ch = cg->channels->data;
-+		size_t					idx = ch->index / 2;
-+		struct peaktech_chan_config const	*cfg;
-+
-+		g_assert(idx < devc->model->num_chan);
-+
-+		cfg = &devc->config[idx];
++		struct peaktech_chan_config const	*cfg = cg->priv;
 +
 +		switch (key) {
 +		case SR_CONF_VOLTAGE:
@@ -672,17 +666,8 @@ index 0000000..b014116
 +		}
 +	} else {
 +		/* handle channel group configuration options */
-+		struct sr_channel const			*ch = cg->channels->data;
-+		size_t					idx = ch->index / 2;
-+		struct peaktech_chan_config		*cfg;
++		struct peaktech_chan_config		*cfg = cg->priv;
 +		double					dval;
-+
-+		if (idx >= ARRAY_SIZE(devc->config)) {
-+                       g_mutex_unlock(&devc->rw_mutex);
-+			return SR_ERR_ARG;
-+               }
-+
-+		cfg = &devc->config[idx];
 +
 +		switch (key) {
 +		case SR_CONF_VOLTAGE_TARGET:
@@ -1400,7 +1385,7 @@ index 0000000..b014116
 +
 +		sprintf(tmp, "CH%zd", i + 1);
 +
-+		cg = sr_channel_group_new(sdi, tmp, NULL);
++		cg = sr_channel_group_new(sdi, tmp, &devc->config[i]);
 +
 +		sprintf(tmp, "V%zd", i + 1);
 +		ch = sr_channel_new(sdi, i * 2, SR_CHANNEL_ANALOG, TRUE, tmp);
