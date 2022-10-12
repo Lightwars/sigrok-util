@@ -89,6 +89,16 @@ unzip -q $INSTALL_DIR/python34.zip *.pyd -d $INSTALL_DIR
 $WGET https://github.com/pbatard/libwdi/releases/download/b721/zadig-2.4.exe -O $INSTALL_DIR/zadig.exe
 $WGET https://github.com/pbatard/libwdi/releases/download/v1.2.5/zadig_xp-2.2.exe -O $INSTALL_DIR/zadig_xp.exe
 
+# libusb
+$GIT_CLONE https://github.com/uwehermann/libusb -b event-abstraction-v4
+cd libusb
+patch -p1 < $ACTUAL_PATH/libusb_raw_io.patch
+./bootstrap.sh
+./configure $C $L
+make -j1 $V
+make install $V
+cd ..
+
 # libserialport
 $GIT_CLONE $SIGROK_REPO_BASE/libserialport
 cd libserialport
