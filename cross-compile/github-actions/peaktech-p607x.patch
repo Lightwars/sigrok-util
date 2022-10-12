@@ -30,10 +30,10 @@ index 5c48081..fa68264 100644
  SR_DRIVER([RDTech UMXX], [rdtech-um], [serial_comm])
 diff --git a/src/hardware/peaktech-607x/api.c b/src/hardware/peaktech-607x/api.c
 new file mode 100644
-index 0000000..b014116
+index 0000000..4e379e6
 --- /dev/null
 +++ b/src/hardware/peaktech-607x/api.c
-@@ -0,0 +1,1419 @@
+@@ -0,0 +1,1408 @@
 +// SPDX-License-Identifier: GPL-3.0-or-later
 +/*
 + * This file is part of the libsigrok project.
@@ -229,8 +229,6 @@ index 0000000..b014116
 +
 +	struct peaktech_report			report_curr;
 +	struct peaktech_report			report_volt;
-+
-+       GMutex rw_mutex;
 +};
 +
 +/**
@@ -250,7 +248,7 @@ index 0000000..b014116
 +	unsigned int			delay_ms;
 +	int				rc;
 +
-+	delay_ms = serial_timeout(serial, out_len) + 50;
++	delay_ms = serial_timeout(serial, out_len) + 25;
 +	rc = serial_write_blocking(serial, data_out, out_len, delay_ms);
 +	if (rc < 0 || (size_t)rc != out_len) {
 +		sr_err("Unable to send data in blocking mode: %d", rc);
@@ -260,7 +258,7 @@ index 0000000..b014116
 +	/* when receiving the input, we have to wait until data has been
 +	 * transmitted physically and the full response has been received plus
 +	 * some processing time on the device. */
-+	delay_ms += serial_timeout(serial, in_len) + 50;
++	delay_ms += serial_timeout(serial, in_len) + 25;
 +	rc = serial_read_blocking(serial, data_in, in_len, delay_ms);
 +	if (rc < 0) {
 +		sr_err("Unable to read data in blocking mode: %s",
@@ -533,6 +531,14 @@ index 0000000..b014116
 +	return g_variant_new_double(res);
 +}
 +
++static struct peaktech_chan_config *
++get_chan_config(struct sr_channel_group const *cg)
++{
++	struct peaktech_chan_config		**cfg = cg->priv;
++
++	return *cfg;
++}
++
 +/**
 + *  libsigrok sr_dev_driver::config_get() api function
 + */
@@ -559,7 +565,6 @@ index 0000000..b014116
 +		pt_inquiry_parse(devc, &reply);
 +	}
 +
-+       g_mutex_lock(&devc->rw_mutex);
 +	if (!cg) {
 +		/* handle global configuration options */
 +		switch (key) {
@@ -570,12 +575,11 @@ index 0000000..b014116
 +			*data = g_variant_new_boolean(devc->output_ena);
 +			break;
 +		default:
-+                       g_mutex_unlock(&devc->rw_mutex);
 +			return SR_ERR_NA;
 +		}
 +	} else {
 +		/* handle channel group configuration options */
-+		struct peaktech_chan_config const	*cfg = cg->priv;
++		struct peaktech_chan_config const	*cfg = get_chan_config(cg);
 +
 +		switch (key) {
 +		case SR_CONF_VOLTAGE:
@@ -595,12 +599,10 @@ index 0000000..b014116
 +						     cfg->dev.output_cv ? "CV" : "");
 +			break;
 +		default:
-+                       g_mutex_unlock(&devc->rw_mutex);
 +			return SR_ERR_NA;
 +		}
 +	}
 +
-+       g_mutex_unlock(&devc->rw_mutex);
 +	return SR_OK;
 +}
 +
@@ -624,7 +626,6 @@ index 0000000..b014116
 +	if (!devc)
 +		return SR_ERR_ARG;
 +
-+       g_mutex_lock(&devc->rw_mutex);
 +	if (!cg) {
 +		/* handle global configuration options */
 +		int		ival;
@@ -633,17 +634,13 @@ index 0000000..b014116
 +		switch (key) {
 +		case SR_CONF_CHANNEL_CONFIG:
 +			ival = _std_str_idx(data, ARRAY_AND_SIZE(CHANNEL_MODES));
-+			if (ival < 0) {
-+                               g_mutex_unlock(&devc->rw_mutex);
++			if (ival < 0)
 +				return SR_ERR_ARG;
-+                       }
 +
-+			if (devc->model->num_chan == 1) {
++			if (devc->model->num_chan == 1)
 +				/* 1-channel only models support only the
 +				 * current mode */
-+                               g_mutex_unlock(&devc->rw_mutex);
 +				return SR_ERR_ARG;
-+                       }
 +
 +			if ((unsigned int)ival != devc->chan_mode || !devc->acq_running)
 +				devc->dirty |= BIT(PEAKTECH_DIRTY_CHAN_MODE);
@@ -661,12 +658,11 @@ index 0000000..b014116
 +			break;
 +
 +		default:
-+                       g_mutex_unlock(&devc->rw_mutex);
 +			return SR_ERR_NA;
 +		}
 +	} else {
 +		/* handle channel group configuration options */
-+		struct peaktech_chan_config		*cfg = cg->priv;
++		struct peaktech_chan_config		*cfg = get_chan_config(cg);
 +		double					dval;
 +
 +		switch (key) {
@@ -675,10 +671,8 @@ index 0000000..b014116
 +
 +			/* check limits */
 +			if (dval < CHAN_PARM[PEAKTECH_CHAN_CTRL_VOLT].min ||
-+			    dval > CHAN_PARM[PEAKTECH_CHAN_CTRL_VOLT].max) {
-+                               g_mutex_unlock(&devc->rw_mutex);
++			    dval > CHAN_PARM[PEAKTECH_CHAN_CTRL_VOLT].max)
 +				return SR_ERR_ARG;
-+                       }
 +
 +			if (dval != cfg->set.curr || !devc->acq_running)
 +				cfg->dirty |= BIT(PEAKTECH_DIRTY_VOLT);
@@ -691,10 +685,8 @@ index 0000000..b014116
 +
 +			/* check limits */
 +			if (dval < CHAN_PARM[PEAKTECH_CHAN_CTRL_CURR].min ||
-+			    dval > CHAN_PARM[PEAKTECH_CHAN_CTRL_CURR].max) {
-+                               g_mutex_unlock(&devc->rw_mutex);
++			    dval > CHAN_PARM[PEAKTECH_CHAN_CTRL_CURR].max)
 +				return SR_ERR_ARG;
-+                       }
 +
 +			if (dval != cfg->set.curr || !devc->acq_running)
 +				cfg->dirty |= BIT(PEAKTECH_DIRTY_CURR);
@@ -703,18 +695,14 @@ index 0000000..b014116
 +			break;
 +
 +		default:
-+                       g_mutex_unlock(&devc->rw_mutex);
 +			return SR_ERR_NA;
 +		}
 +	}
 +
 +	/* when acquisition is not running, apply the values to the device */
-+	if (!devc->acq_running) {
-+               g_mutex_unlock(&devc->rw_mutex);
++	if (!devc->acq_running)
 +		return pt_setup_apply(devc);
-+       }
 +
-+       g_mutex_unlock(&devc->rw_mutex);
 +	return SR_OK;
 +}
 +
@@ -1376,16 +1364,18 @@ index 0000000..b014116
 +	devc = g_malloc0(sizeof *devc);
 +	devc->sdi = sdi;
 +	devc->model = model;
-+       g_mutex_init(&devc->rw_mutex);
 +
 +	for (size_t i = 0; i < model->num_chan; ++i) {
 +		char			tmp[64];
 +		struct sr_channel	*ch;
 +		struct sr_channel_group	*cg;
++		/* API requires that 'priv' is allocated */
++		struct peaktech_chan_config **cfg_ref = g_malloc(sizeof *cfg_ref);
 +
 +		sprintf(tmp, "CH%zd", i + 1);
 +
-+		cg = sr_channel_group_new(sdi, tmp, &devc->config[i]);
++		*cfg_ref = &devc->config[i];
++		cg = sr_channel_group_new(sdi, tmp, cfg_ref);
 +
 +		sprintf(tmp, "V%zd", i + 1);
 +		ch = sr_channel_new(sdi, i * 2, SR_CHANNEL_ANALOG, TRUE, tmp);
@@ -1424,7 +1414,6 @@ index 0000000..b014116
 +
 +	g_slist_free(devc->ch_curr);
 +	g_slist_free(devc->ch_volt);
-+       g_mutex_clear(&devc->rw_mutex);
 +}
 +
 +/**
